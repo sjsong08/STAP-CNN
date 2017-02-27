@@ -407,7 +407,8 @@ public class MainActivity extends AppCompatActivity {
                                 if (index == 4095) {
                                     index = 63;
                                     final String noSamp = String.valueOf(++sampCnt);
-
+                                    double[] conv_out = new double[4096];
+                                    double[] pool_out = new double[1024];
                                     handler.post(new Runnable() {
                                         @Override
                                         public void run() {
@@ -415,6 +416,32 @@ public class MainActivity extends AppCompatActivity {
                                             arrow_Position(sampCnt);
                                         }
                                     });
+
+                                    for (int k = 0; k < 4096; k++) {
+                                        if (k == 0) {
+                                            conv_out[k] = bufStapL[0] * WC[0][3] + bufStapL[1] * WC[0][4] + bufStapL[2] * WC[0][5] + bufStapL[3] * WC[0][6] +
+                                                    bufStapR[0] * WC[1][3] + bufStapR[1] * WC[1][4] + bufStapR[2] * WC[1][5] + bufStapR[3] * WC[1][6];
+                                        } else if (k == 1) {
+                                            conv_out[k] = bufStapL[0] * WC[0][2] + bufStapL[1] * WC[0][3] + bufStapL[2] * WC[0][4] + bufStapL[3] * WC[0][5] + bufStapL[4] * WC[0][6] +
+                                                    bufStapR[0] * WC[1][2] + bufStapR[1] * WC[1][3] + bufStapR[2] * WC[1][4] + bufStapR[3] * WC[1][5] + bufStapR[4] * WC[1][6];
+                                        } else if (k == 2) {
+                                            conv_out[k] = bufStapL[0] * WC[0][1] + bufStapL[1] * WC[0][2] + bufStapL[2] * WC[0][3] + bufStapL[3] * WC[0][4] + bufStapL[4] * WC[0][5] + bufStapL[5] * WC[0][6] +
+                                                    bufStapR[0] * WC[1][1] + bufStapR[1] * WC[1][2] + bufStapR[2] * WC[1][3] + bufStapR[3] * WC[1][4] + bufStapR[4] * WC[1][5] + bufStapR[5] * WC[1][6];
+                                        } else if (k == 4093) {
+                                            conv_out[k] = bufStapL[4090] * WC[0][0] + bufStapL[4091] * WC[0][1] + bufStapL[4092] * WC[0][2] + bufStapL[4093] * WC[0][3] + bufStapL[4094] * WC[0][4] + bufStapL[4095] * WC[0][5] +
+                                                    bufStapR[4090] * WC[1][0] + bufStapR[4091] * WC[1][1] + bufStapR[4092] * WC[1][2] + bufStapR[4093] * WC[1][3] + bufStapR[4094] * WC[1][4] + bufStapR[4095] * WC[1][5];
+                                        } else if (k == 4094) {
+                                            conv_out[k] = bufStapL[4091] * WC[0][0] + bufStapL[4092] * WC[0][1] + bufStapL[4093] * WC[0][2] + bufStapL[4094] * WC[0][3] + bufStapL[4095] * WC[0][4] +
+                                                    bufStapR[4091] * WC[1][0] + bufStapR[4092] * WC[1][1] + bufStapR[4093] * WC[1][2] + bufStapR[4094] * WC[1][3] + bufStapR[4095] * WC[1][4];
+                                        } else if (k == 4095) {
+                                            conv_out[k] = bufStapL[4092] * WC[0][0] + bufStapL[4093] * WC[0][1] + bufStapL[4094] * WC[0][2] + bufStapL[4095] * WC[0][3] +
+                                                    bufStapR[4092] * WC[1][0] + bufStapR[4093] * WC[1][1] + bufStapR[4094] * WC[1][2] + bufStapR[4095] * WC[1][3];
+                                        } else {
+                                            conv_out[k] = bufStapL[k - 3] * WC[0][0] + bufStapL[k - 2] * WC[0][1] + bufStapL[k - 1] * WC[0][2] + bufStapL[k] * WC[0][3] + bufStapL[k + 1] * WC[0][4] + bufStapL[k + 2] * WC[0][5] + bufStapL[k + 3] * WC[0][6] +
+                                                    bufStapR[k - 3] * WC[1][0] + bufStapR[k - 2] * WC[1][1] + bufStapR[k - 1] * WC[1][2] + bufStapR[k] * WC[1][3] + bufStapR[k + 1] * WC[1][4] + bufStapR[k + 2] * WC[1][5] + bufStapR[k + 3] * WC[1][6];
+                                        }
+                                    }
+
 
 /*
                                     double[] topSig1 = new double[2048];

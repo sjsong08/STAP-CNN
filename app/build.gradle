@@ -10,8 +10,6 @@ android {
         targetSdkVersion 23
         versionCode 1
         versionName "1.0"
-        multiDexEnabled true
-
     }
     buildTypes {
         release {
@@ -31,14 +29,3 @@ dependencies {
     compile 'org.nd4j:nd4j-native:0.7.2:android-x86'
 }
 
-packagingOptions {
-    exclude 'META-INF/DEPENDENCIES'
-    exclude 'META-INF/DEPENDENCIES.txt'
-    exclude 'META-INF/LICENSE'
-    exclude 'META-INF/LICENSE.txt'
-    exclude 'META-INF/license.txt'
-    exclude 'META-INF/NOTICE'
-    exclude 'META-INF/NOTICE.txt'
-    exclude 'META-INF/notice.txt'
-    exclude 'META-INF/INDEX.LIST'
-}
