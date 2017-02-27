@@ -46,6 +46,14 @@ public class MainActivity extends AppCompatActivity {
     int nT=5; // number of training data
     int C=7;
     double threshold = 0.3;
+
+    double[][] WC = new double[2][7];
+    double[][] WF1 = new double[][32];
+    double[][] WF2 = new double[32][12];
+    double[] BF1 = new double[32];
+    double[] BF2 = new double[12];
+    double[] BN;
+
     double[][][] SVs = new double[21][N][D];
     double[][] alphas = new double[21][N];
     double[] bias = new double[21];
@@ -187,67 +195,112 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onClickButton2(View v){ // OPEN FILES
-        String inSVs = Environment.getExternalStorageDirectory().getAbsolutePath() + "/SVs";
-        String inalphas = Environment.getExternalStorageDirectory().getAbsolutePath() + "/alphas";
-        String inbias = Environment.getExternalStorageDirectory().getAbsolutePath() + "/bias";
-        File fileSVs = new File(inSVs);
-        File filealphas = new File(inalphas);
-        File filebias = new File(inbias);
+        String inWC = Environment.getExternalStorageDirectory().getAbsolutePath() + "/WC";
+        String inWF1 = Environment.getExternalStorageDirectory().getAbsolutePath() + "/WF1";
+        String inWF2 = Environment.getExternalStorageDirectory().getAbsolutePath() + "/WF2";
+        String inBF1 = Environment.getExternalStorageDirectory().getAbsolutePath() + "/BF1";
+        String inBF2 = Environment.getExternalStorageDirectory().getAbsolutePath() + "/BF2";
+        String inBN = Environment.getExternalStorageDirectory().getAbsolutePath() + "/BN";
+
+        File fileWC = new File(inWC);
+        File fileWF1 = new File(inWF1);
+        File fileWF2 = new File(inWF2);
+        File fileBF1 = new File(inBF1);
+        File fileBF2 = new File(inBF2);
+        File fileBN = new File(inBN);
 
 
-        double[] SDS = new double[D*N*21];
-        double[] alpha2 = new double[N*21];
+        double[] WC_t = new double[2*7];
+        double[] WF1_t = new double[1024*32];
+        double[] WF2_t = new double[32*12];
+
+
 
 
         try {
-            FileInputStream svm = new FileInputStream(fileSVs);
-            FileInputStream alpha = new FileInputStream(filealphas);
-            FileInputStream bia = new FileInputStream(filebias);
+            FileInputStream fWC = new FileInputStream(fileWC);
+            FileInputStream fWF1 = new FileInputStream(fileWF1);
+            FileInputStream fWF2 = new FileInputStream(fileWF2);
+            FileInputStream fBF1 = new FileInputStream(fileBF1);
+            FileInputStream fBF2 = new FileInputStream(fileBF2);
+            FileInputStream fBN = new FileInputStream(fileBN);
 
-
-            BufferedReader bufferedReader1 = new BufferedReader(new InputStreamReader(svm));
+            BufferedReader bufferedReader1 = new BufferedReader(new InputStreamReader(fWC));
 
             String temp = "";
             int num = 0;
 
             while((temp=bufferedReader1.readLine()) != null){
-                SDS[num] = Double.parseDouble(temp);
+                WC_t[num] = Double.parseDouble(temp);
                 num += 1;
             }
 
             bufferedReader1.close();
 
-            for(int i=0;i<21;i++) {
-                for (int q = 0; q < N; q++) {
-                    for (int p = 0; p < D; p++) {
-                        SVs[i][q][p]=SDS[i*D*N + q*D + p];
-                    }
+            for(int i=0;i<2;i++) {
+                for (int q = 0; q < 7; q++) {
+                    WC[i][q]=WC_t[i*7+q];
                 }
             }
 
             num = 0;
-            BufferedReader bufferedReader2 = new BufferedReader(new InputStreamReader(alpha));
+            BufferedReader bufferedReader2 = new BufferedReader(new InputStreamReader(fWF1));
 
             while((temp=bufferedReader2.readLine()) != null){
-                alpha2[num] = Double.parseDouble(temp);
+                WF1_t[num] = Double.parseDouble(temp);
                 num += 1;
             }
             bufferedReader2.close();
 
-            for(int q=0;q<21;q++) {
-                for (int p = 0; p < N; p++) {
-                    alphas[q][p]=alpha2[q*N + p];
+            for(int q=0;q<1024;q++) {
+                for (int p = 0; p < 32; p++) {
+                    WF1[q][p]=WF1_t[q*32 + p];
                 }
             }
 
             num = 0;
-            BufferedReader bufferedReader3 = new BufferedReader(new InputStreamReader(bia));
+            BufferedReader bufferedReader3 = new BufferedReader(new InputStreamReader(fWF2));
 
             while((temp=bufferedReader3.readLine()) != null){
-                bias[num] = Double.parseDouble(temp);
+                WF2_t[num] = Double.parseDouble(temp);
                 num += 1;
             }
             bufferedReader3.close();
+
+            for(int q=0;q<32;q++) {
+                for (int p = 0; p < 12; p++) {
+                    WF2[q][p]=WF2_t[q*12 + p];
+                }
+            }
+
+            num = 0;
+            BufferedReader bufferedReader4 = new BufferedReader(new InputStreamReader(fBF1));
+
+            while((temp=bufferedReader4.readLine()) != null){
+                BF1[num] = Double.parseDouble(temp);
+                num += 1;
+            }
+            bufferedReader4.close();
+
+
+            num = 0;
+            BufferedReader bufferedReader5 = new BufferedReader(new InputStreamReader(fBF2));
+
+            while((temp=bufferedReader5.readLine()) != null){
+                BF2[num] = Double.parseDouble(temp);
+                num += 1;
+            }
+            bufferedReader5.close();
+
+            num = 0;
+            BufferedReader bufferedReader6 = new BufferedReader(new InputStreamReader(fBN));
+
+            while((temp=bufferedReader6.readLine()) != null){
+                BN[num] = Double.parseDouble(temp);
+                num += 1;
+            }
+            bufferedReader6.close();
+
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -407,8 +460,6 @@ public class MainActivity extends AppCompatActivity {
                                 if (index == 4095) {
                                     index = 63;
                                     final String noSamp = String.valueOf(++sampCnt);
-                                    double[] conv_out = new double[4096];
-                                    double[] pool_out = new double[1024];
                                     handler.post(new Runnable() {
                                         @Override
                                         public void run() {
@@ -417,30 +468,7 @@ public class MainActivity extends AppCompatActivity {
                                         }
                                     });
 
-                                    for (int k = 0; k < 4096; k++) {
-                                        if (k == 0) {
-                                            conv_out[k] = bufStapL[0] * WC[0][3] + bufStapL[1] * WC[0][4] + bufStapL[2] * WC[0][5] + bufStapL[3] * WC[0][6] +
-                                                    bufStapR[0] * WC[1][3] + bufStapR[1] * WC[1][4] + bufStapR[2] * WC[1][5] + bufStapR[3] * WC[1][6];
-                                        } else if (k == 1) {
-                                            conv_out[k] = bufStapL[0] * WC[0][2] + bufStapL[1] * WC[0][3] + bufStapL[2] * WC[0][4] + bufStapL[3] * WC[0][5] + bufStapL[4] * WC[0][6] +
-                                                    bufStapR[0] * WC[1][2] + bufStapR[1] * WC[1][3] + bufStapR[2] * WC[1][4] + bufStapR[3] * WC[1][5] + bufStapR[4] * WC[1][6];
-                                        } else if (k == 2) {
-                                            conv_out[k] = bufStapL[0] * WC[0][1] + bufStapL[1] * WC[0][2] + bufStapL[2] * WC[0][3] + bufStapL[3] * WC[0][4] + bufStapL[4] * WC[0][5] + bufStapL[5] * WC[0][6] +
-                                                    bufStapR[0] * WC[1][1] + bufStapR[1] * WC[1][2] + bufStapR[2] * WC[1][3] + bufStapR[3] * WC[1][4] + bufStapR[4] * WC[1][5] + bufStapR[5] * WC[1][6];
-                                        } else if (k == 4093) {
-                                            conv_out[k] = bufStapL[4090] * WC[0][0] + bufStapL[4091] * WC[0][1] + bufStapL[4092] * WC[0][2] + bufStapL[4093] * WC[0][3] + bufStapL[4094] * WC[0][4] + bufStapL[4095] * WC[0][5] +
-                                                    bufStapR[4090] * WC[1][0] + bufStapR[4091] * WC[1][1] + bufStapR[4092] * WC[1][2] + bufStapR[4093] * WC[1][3] + bufStapR[4094] * WC[1][4] + bufStapR[4095] * WC[1][5];
-                                        } else if (k == 4094) {
-                                            conv_out[k] = bufStapL[4091] * WC[0][0] + bufStapL[4092] * WC[0][1] + bufStapL[4093] * WC[0][2] + bufStapL[4094] * WC[0][3] + bufStapL[4095] * WC[0][4] +
-                                                    bufStapR[4091] * WC[1][0] + bufStapR[4092] * WC[1][1] + bufStapR[4093] * WC[1][2] + bufStapR[4094] * WC[1][3] + bufStapR[4095] * WC[1][4];
-                                        } else if (k == 4095) {
-                                            conv_out[k] = bufStapL[4092] * WC[0][0] + bufStapL[4093] * WC[0][1] + bufStapL[4094] * WC[0][2] + bufStapL[4095] * WC[0][3] +
-                                                    bufStapR[4092] * WC[1][0] + bufStapR[4093] * WC[1][1] + bufStapR[4094] * WC[1][2] + bufStapR[4095] * WC[1][3];
-                                        } else {
-                                            conv_out[k] = bufStapL[k - 3] * WC[0][0] + bufStapL[k - 2] * WC[0][1] + bufStapL[k - 1] * WC[0][2] + bufStapL[k] * WC[0][3] + bufStapL[k + 1] * WC[0][4] + bufStapL[k + 2] * WC[0][5] + bufStapL[k + 3] * WC[0][6] +
-                                                    bufStapR[k - 3] * WC[1][0] + bufStapR[k - 2] * WC[1][1] + bufStapR[k - 1] * WC[1][2] + bufStapR[k] * WC[1][3] + bufStapR[k + 1] * WC[1][4] + bufStapR[k + 2] * WC[1][5] + bufStapR[k + 3] * WC[1][6];
-                                        }
-                                    }
+
 
 
 /*
@@ -590,44 +618,29 @@ public class MainActivity extends AppCompatActivity {
                                     index = 63;
 
 
-                                    double[] topSig1 = new double[2048];
-                                    double[] topSig2 = new double[2048];
-                                    double[] botSig1 = new double[2048];
-                                    double[] botSig2 = new double[2048];
-
-                                    for(int k=0; k<2048; k++){
-                                        topSig1[k] = bufStapL[2*k];
-                                        topSig2[k] = bufStapL[2*k+1];
-                                        botSig1[k] = bufStapR[2*k];
-                                        botSig2[k] = bufStapR[2*k+1];
-                                    }
-
-                                    double[][] fftSig1 = new double[2048][2];
-                                    double[][] fftSig2 = new double[2048][2];
-
-                                    for(int k=0;k<2048;k++){
-                                        fftSig1[k][0] = (double) (topSig1[k]-topSig2[k]);
-                                        fftSig2[k][0] = (double) (botSig1[k]-botSig2[k]);
-                                    }
-
-                                    fft(fftSig1);
-                                    fft(fftSig2);
-
-                                    double[] magSig1 = new double[64];
-                                    double[] magSig2 = new double[64];
-
-                                    for (int k=0;k<D/2;k++){
-                                        int a=(1024/D/2)*(k+1);
-                                        magSig1[k] = Math.sqrt(fftSig1[a][0] * fftSig1[a][0] + fftSig1[a][1] * fftSig1[a][1]);
-                                        magSig2[k] = Math.sqrt(fftSig2[a][0] * fftSig2[a][0] + fftSig2[a][1] * fftSig2[a][1]);
-                                    }
+                                    double[] Conv_out = new double[4096];
+                                    double[] BN_out = new double[4096];
+                                    double[] Act_out = new double[4096];
+                                    double[] pool_out = new double[1024];
+                                    double[] FC1_out = new double[32];
+                                    double[] FC2_out = new double[12];
 
 
-                                    double[] magSig = new double[64];
-                                    for(int k=0;k<D/2;k++){
-                                        magSig[k]=magSig1[k];
-                                        magSig[k+D/2]=magSig2[k];
-                                    }
+
+                                    Conv_out = Conv(bufStapL,bufStapR,WC);
+                                    BN_out = Batch_Normalize(Conv_out, BN[0],BN[1]);
+                                    Act_out = reLU(BN_out);
+                                    pool_out = Max_Pool(Act_out, 8);
+                                    FC1_out = Fully_Connected(pool_out, WF1, BF1, 32);
+                                    FC1_out = reLU(FC1_out);
+                                    FC2_out = Fully_Connected(FC1_out, WF2, BF2, 12);
+
+
+
+
+
+
+
 
 
                                     double maxSig=-10;
@@ -961,6 +974,96 @@ public class MainActivity extends AppCompatActivity {
 
         return out;
     }
+    
+    public double[] Conv(int[] input1, int[] input2, double[][]W){
+        int size = input1.length;
+        double[] conv_out = new double[size];
+        
+        for (int k = 0; k < size; k++) {
+            if (k == 0) {
+                conv_out[k] = input1[0] * WC[0][3] + input1[1] * WC[0][4] + input1[2] * WC[0][5] + input1[3] * WC[0][6] +
+                        input2[0] * WC[1][3] + input2[1] * WC[1][4] + input2[2] * WC[1][5] + input2[3] * WC[1][6];
+            } else if (k == 1) {
+                conv_out[k] = input1[0] * WC[0][2] + input1[1] * WC[0][3] + input1[2] * WC[0][4] + input1[3] * WC[0][5] + input1[4] * WC[0][6] +
+                        input2[0] * WC[1][2] + input2[1] * WC[1][3] + input2[2] * WC[1][4] + input2[3] * WC[1][5] + input2[4] * WC[1][6];
+            } else if (k == 2) {
+                conv_out[k] = input1[0] * WC[0][1] + input1[1] * WC[0][2] + input1[2] * WC[0][3] + input1[3] * WC[0][4] + input1[4] * WC[0][5] + input1[5] * WC[0][6] +
+                        input2[0] * WC[1][1] + input2[1] * WC[1][2] + input2[2] * WC[1][3] + input2[3] * WC[1][4] + input2[4] * WC[1][5] + input2[5] * WC[1][6];
+            } else if (k == size-3) {
+                conv_out[k] = input1[size-6] * WC[0][0] + input1[size-5] * WC[0][1] + input1[size-4] * WC[0][2] + input1[size-3] * WC[0][3] + input1[size-2] * WC[0][4] + input1[size-1] * WC[0][5] +
+                        input2[size-6] * WC[1][0] + input2[size-5] * WC[1][1] + input2[size-4] * WC[1][2] + input2[size-3] * WC[1][3] + input2[size-2] * WC[1][4] + input2[size-1] * WC[1][5];
+            } else if (k == size-2) {
+                conv_out[k] = input1[size-5] * WC[0][0] + input1[size-4] * WC[0][1] + input1[size-3] * WC[0][2] + input1[size-2] * WC[0][3] + input1[size-1] * WC[0][4] +
+                        input2[size-5] * WC[1][0] + input2[size-4] * WC[1][1] + input2[size-3] * WC[1][2] + input2[size-2] * WC[1][3] + input2[size-1] * WC[1][4];
+            } else if (k == size-1) {
+                conv_out[k] = input1[size-4] * WC[0][0] + input1[size-3] * WC[0][1] + input1[size-2] * WC[0][2] + input1[size-1] * WC[0][3] +
+                        input2[4092] * WC[1][0] + input2[4093] * WC[1][1] + input2[4094] * WC[1][2] + input2[4095] * WC[1][3];
+            } else {
+                conv_out[k] = input1[k - 3] * WC[0][0] + input1[k - 2] * WC[0][1] + input1[k - 1] * WC[0][2] + input1[k] * WC[0][3] + input1[k + 1] * WC[0][4] + input1[k + 2] * WC[0][5] + input1[k + 3] * WC[0][6] +
+                        input2[k - 3] * WC[1][0] + input2[k - 2] * WC[1][1] + input2[k - 1] * WC[1][2] + input2[k] * WC[1][3] + input2[k + 1] * WC[1][4] + input2[k + 2] * WC[1][5] + input2[k + 3] * WC[1][6];
+            }
+        }
+        return conv_out;
+    }
+
+    public double[] Max_Pool(double[] input, int stride){
+
+        int size = input.length;
+        double[] out = new double[size/stride];
+
+        for (int j=0; j< size/stride; j++){
+
+            double tmpout = 0;
+            for (int i=0; i<stride; i++) {
+                if (input[i+j*stride] >= tmpout) {
+                    tmpout = input[i+j*stride];
+                }
+            }
+            out[j]=tmpout;
+        }
+
+        return out;
+    }
+
+    public double[] Batch_Normalize(double[] input, double mean, double var){
+        int size = input.length;
+        double[] out = new double[size];
+        for (int i=0;i<size; i++){
+            if(var==0){
+                out[i] = (input[i]-mean)/0.0001;
+            }
+            else {
+                out[i] = (input[i] - mean) / var;
+            }
+        }
+        return out;
+    }
+
+    public double[] reLU(double[] input){
+        int size = input.length;
+        double[] out = new double[size];
+        for (int i=0;i<size;i++){
+            out[i] = max(input[i],0);
+        }
+        return out;
+    }
+
+
+
+    public double[] Fully_Connected(double[] input, double[][] W, double[] B, int outsize){
+        int size = input.length;
+        double[] out = new double[outsize];
+
+        for (int i=0;i<outsize;i++){
+            for (int j=0;j<size;j++){
+                out[i]=0;
+                out[i]=out[i]+input[j]*W[j][i];
+            }
+            out[i]=out[i]+B[i];
+        }
+        return out;
+    }
+
 
 
 
