@@ -39,7 +39,7 @@ public class MainActivity extends AppCompatActivity {
     int posX = 0;
     int posY = 0;
     int angle = 0;
-    int sampCnt = 0;
+    int maxClass = -1;
     int D=64; // feature dimension
     int n=5;  //
     int N=n*2; // support vectors
@@ -48,15 +48,13 @@ public class MainActivity extends AppCompatActivity {
     double threshold = 0.3;
 
     double[][] WC = new double[2][7];
-    double[][] WF1 = new double[][32];
+    double[][] WF1 = new double[1024][32];
     double[][] WF2 = new double[32][12];
     double[] BF1 = new double[32];
     double[] BF2 = new double[12];
     double[] BN;
+    double[][] sample1 = new double[2][4096];
 
-    double[][][] SVs = new double[21][N][D];
-    double[][] alphas = new double[21][N];
-    double[] bias = new double[21];
 
     public static final String LOAD_METHOD_ID = "load_method_id";
     public static final int LOAD_METHOD_CODE = 92840;
@@ -125,7 +123,7 @@ public class MainActivity extends AppCompatActivity {
         thread2 = new Thread(thread1);
         thread2.setPriority(Thread.MAX_PRIORITY);
         thread2.start();
-        sampCnt = 0;
+        maxClass = 0;
         arrow_Position(0);
     }
 
@@ -135,7 +133,7 @@ public class MainActivity extends AppCompatActivity {
         if(thread2 != null){
             thread2.interrupt();
         }
-        sampCnt=0;
+        maxClass = 0;
         arrow_Position(1000);
     }
 
@@ -201,6 +199,7 @@ public class MainActivity extends AppCompatActivity {
         String inBF1 = Environment.getExternalStorageDirectory().getAbsolutePath() + "/BF1";
         String inBF2 = Environment.getExternalStorageDirectory().getAbsolutePath() + "/BF2";
         String inBN = Environment.getExternalStorageDirectory().getAbsolutePath() + "/BN";
+        String inSample = Environment.getExternalStorageDirectory().getAbsolutePath() + "/Sample";
 
         File fileWC = new File(inWC);
         File fileWF1 = new File(inWF1);
@@ -208,11 +207,13 @@ public class MainActivity extends AppCompatActivity {
         File fileBF1 = new File(inBF1);
         File fileBF2 = new File(inBF2);
         File fileBN = new File(inBN);
+        File fileSample = new File(inSample);
 
 
         double[] WC_t = new double[2*7];
         double[] WF1_t = new double[1024*32];
         double[] WF2_t = new double[32*12];
+        double[] Sample_t = new double[8192];
 
 
 
@@ -224,6 +225,7 @@ public class MainActivity extends AppCompatActivity {
             FileInputStream fBF1 = new FileInputStream(fileBF1);
             FileInputStream fBF2 = new FileInputStream(fileBF2);
             FileInputStream fBN = new FileInputStream(fileBN);
+            FileInputStream fSample = new FileInputStream(fileSample);
 
             BufferedReader bufferedReader1 = new BufferedReader(new InputStreamReader(fWC));
 
@@ -295,34 +297,39 @@ public class MainActivity extends AppCompatActivity {
             num = 0;
             BufferedReader bufferedReader6 = new BufferedReader(new InputStreamReader(fBN));
 
+
             while((temp=bufferedReader6.readLine()) != null){
                 BN[num] = Double.parseDouble(temp);
                 num += 1;
             }
             bufferedReader6.close();
 
+            num = 0;
+            BufferedReader bufferedReader7 = new BufferedReader(new InputStreamReader(fSample));
+
+            while((temp=bufferedReader7.readLine()) != null){
+                Sample_t[num] = Double.parseDouble(temp);
+                num += 1;
+            }
+            bufferedReader7.close();
+
+            for(int q=0;q<2;q++) {
+                for (int p = 0; p < 4096; p++) {
+                    sample1[q][p]=Sample_t[q*4096 + p];
+                }
+            }
 
         } catch (IOException e) {
             e.printStackTrace();
         }
-        int SDS_length = SDS.length;
-        int alpha_length = alphas.length;
-        int bias_length = bias.length;
-        //Toast.makeText(getApplicationContext(),"SDS="+SDS_length+" alpha="+alpha_length+" bias="+bias_length,Toast.LENGTH_SHORT).show();
+        int WC_length = WC.length;
+        int WF1_length = WF1.length;
+        int WF2_length = WF2.length;
+        Toast.makeText(getApplicationContext(),"WC="+WC_length+" WF1="+WF1_length+" WF2="+WF2_length,Toast.LENGTH_SHORT).show();
 
-        double[] TEST1 = new double[D];
-        double[] TEST2 = new double[D];
-        double[] TEST3 = new double[D];
-        for(int i=0;i<D;i++){
-            TEST1[i]=SVs[1][0][i];
-            TEST2[i]=SVs[1][8][i];
-            TEST3[i]=SVs[20][5][i];
-        }
+        int aaa=Network(sample1);
+        Toast.makeText(getApplicationContext(),aaa,Toast.LENGTH_SHORT).show();
 
-        int aaa=SVMBU(TEST1);
-        int bbb=SVMBU(TEST2);
-        int ccc=SVMBU(TEST3);
-        Toast.makeText(getApplicationContext(),aaa+"  "+bbb+"  "+ccc,Toast.LENGTH_SHORT).show();
     }
 
 
@@ -436,7 +443,7 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-                    while (sampCnt <= nT * C -1) {
+                    while (maxClass <= nT * C -1) {
                         short[] buffer = new short[bufferSize];
                         final int bufferReadResults = sRec.read(buffer, 0, bufferSize);
 
@@ -459,12 +466,12 @@ public class MainActivity extends AppCompatActivity {
 
                                 if (index == 4095) {
                                     index = 63;
-                                    final String noSamp = String.valueOf(++sampCnt);
+                                    final String noSamp = String.valueOf(++maxClass);
                                     handler.post(new Runnable() {
                                         @Override
                                         public void run() {
                                             textView2.setText(noSamp);
-                                            arrow_Position(sampCnt);
+                                            arrow_Position(maxClass);
                                         }
                                     });
 
@@ -617,63 +624,29 @@ public class MainActivity extends AppCompatActivity {
                                 if (index == 4095) {
                                     index = 63;
 
-
-                                    double[] Conv_out = new double[4096];
-                                    double[] BN_out = new double[4096];
-                                    double[] Act_out = new double[4096];
-                                    double[] pool_out = new double[1024];
-                                    double[] FC1_out = new double[32];
-                                    double[] FC2_out = new double[12];
-
-
-
-                                    Conv_out = Conv(bufStapL,bufStapR,WC);
-                                    BN_out = Batch_Normalize(Conv_out, BN[0],BN[1]);
-                                    Act_out = reLU(BN_out);
-                                    pool_out = Max_Pool(Act_out, 8);
-                                    FC1_out = Fully_Connected(pool_out, WF1, BF1, 32);
-                                    FC1_out = reLU(FC1_out);
-                                    FC2_out = Fully_Connected(FC1_out, WF2, BF2, 12);
-
-
-
-
-
-
-
-
-
-                                    double maxSig=-10;
-
-                                    for(int k=0;k<D;k++){
-                                        if(magSig[k]>maxSig){
-                                            maxSig=magSig[k];
-                                        }
-                                    }
-                                    for(int k=0;k<D;k++) {
-                                        magSig[k] = magSig[k] / maxSig;
+                                    double[][] sig = new double[2][4096];
+                                    for (int k=0;k<4096;k++){
+                                        sig[0][k] = (double) bufStapL[k];
+                                        sig[1][k] = (double) bufStapR[k];
                                     }
 
-
-                                    sampCnt = SVMBU(magSig);
-
-
+                                    maxClass = Network(sig);
 
                                     handler.post(new Runnable() {
                                         @Override
                                         public void run() {
-                                            arrow_Position(sampCnt);
-                                            textView2.setText(String.valueOf(sampCnt));
+                                            arrow_Position(maxClass);
+                                            textView2.setText(String.valueOf(maxClass));
 
                                             if(iswebopen) {
                                                 textView1.setText("web control");
-                                                if (sampCnt == 1) {
+                                                if (maxClass == 1) {
                                                     webView.pageUp(true);
-                                                } else if (sampCnt == 7) {
+                                                } else if (maxClass == 7) {
                                                     webView.pageDown(true);
-                                                } else if (sampCnt == 2) {
+                                                } else if (maxClass == 2) {
                                                     webView.pageUp(false);
-                                                } else if (sampCnt == 6) {
+                                                } else if (maxClass == 6) {
                                                     webView.pageDown(false);
                                                 }
                                             }
@@ -686,32 +659,32 @@ public class MainActivity extends AppCompatActivity {
                                             else if(ismapopen){
                                                 if(istouched) {
                                                     if (upordown) {
-                                                        if (sampCnt <3 && sampCnt >0) {
+                                                        if (maxClass <3 && maxClass >0) {
                                                             imageView2.setImageResource(R.drawable.mapziup);
                                                             textView1.setText("Zomm In up");
-                                                        } else if (sampCnt >5) {
+                                                        } else if (maxClass >5) {
                                                             imageView2.setImageResource(R.drawable.mapzoup);
                                                             textView1.setText("Zoom Out up");
-                                                        } else if (sampCnt == 4){
+                                                        } else if (maxClass == 4){
                                                             imageView2.setImageResource(R.drawable.map);
-                                                        } else if (sampCnt == 3){
+                                                        } else if (maxClass == 3){
                                                             imageView2.setImageResource(R.drawable.maprotright);
-                                                        } else if (sampCnt == 5){
+                                                        } else if (maxClass == 5){
                                                             imageView2.setImageResource(R.drawable.maprotleft);
                                                         }
 
                                                     } else {
-                                                        if (sampCnt <3 && sampCnt >0) {
+                                                        if (maxClass <3 && maxClass >0) {
                                                             imageView2.setImageResource(R.drawable.mapzidown);
                                                             textView1.setText("Zoom In down");
-                                                        } else if (sampCnt>5) {
+                                                        } else if (maxClass>5) {
                                                             imageView2.setImageResource(R.drawable.mapzodown);
                                                             textView1.setText("Zoom Out down");
-                                                        } else if (sampCnt == 4){
+                                                        } else if (maxClass == 4){
                                                             imageView2.setImageResource(R.drawable.map);
-                                                        } else if (sampCnt == 3){
+                                                        } else if (maxClass == 3){
                                                             imageView2.setImageResource(R.drawable.maprotright);
-                                                        } else if (sampCnt == 5){
+                                                        } else if (maxClass == 5){
                                                             imageView2.setImageResource(R.drawable.maprotleft);
                                                         }
                                                     }
@@ -905,7 +878,7 @@ public class MainActivity extends AppCompatActivity {
         out=C;
         return out;
     }
-
+/*
     public int SVMBU(double[] tstX){
         double[] C1={0,0,0};
         double[] C2={0,0};
@@ -969,13 +942,10 @@ public class MainActivity extends AppCompatActivity {
             C3 = svmoutput(tstX, SVs[17], alphas[17], bias[17]);
             if(C3>threshold){out=4;}else if(C3<-threshold){out=7;}else{out=0;}
         }
-
-
-
         return out;
     }
-    
-    public double[] Conv(int[] input1, int[] input2, double[][]W){
+*/
+    public double[] Conv(double[] input1, double[] input2, double[][]W){
         int size = input1.length;
         double[] conv_out = new double[size];
         
@@ -1025,6 +995,23 @@ public class MainActivity extends AppCompatActivity {
         return out;
     }
 
+    public double[] Avg_Pool(double[] input, int stride){
+
+        int size = input.length;
+        double[] out = new double[size/stride];
+
+        for (int j=0; j< size/stride; j++){
+
+            double tmpout = 0;
+            for (int i=0; i<stride; i++) {
+                tmpout = tmpout + input[i*stride + j];
+            }
+            out[j]=tmpout/stride;
+        }
+
+        return out;
+    }
+
     public double[] Batch_Normalize(double[] input, double mean, double var){
         int size = input.length;
         double[] out = new double[size];
@@ -1064,10 +1051,54 @@ public class MainActivity extends AppCompatActivity {
         return out;
     }
 
+    public double[] Soft_Max(double[] input){
+        int size = input.length;
+        double[] out = new double[size];
+        double sum = 0;
+        for (int i=0;i<size;i++){
+            sum = sum + input[i];
+        }
+        for (int i=0;i<size;i++){
+            out[i]=input[i]/sum;
+        }
+        return out;
+
+    }
+
+    public int Network(double[][] input){
+        double[] Conv_out = new double[1024];
+        double[] Apool_out1 = new double[512];
+        double[] Apool_out2 = new double[512];
+        double[] BN_out = new double[1024];
+        double[] Act_out = new double[1024];
+        double[] Mpool_out = new double[256];
+        double[] FC1_out = new double[32];
+        double[] FC2_out = new double[12];
+        double[] SM_out = new double[12];
 
 
+        Apool_out1 = Avg_Pool(input[0], 4);
+        Apool_out2 = Avg_Pool(input[1], 4);
+        Conv_out = Conv(Apool_out1, Apool_out2, WC);
+        BN_out = Batch_Normalize(Conv_out, BN[0],BN[1]);
+        Act_out = reLU(BN_out);
+        Mpool_out = Max_Pool(Act_out, 4);
+        FC1_out = Fully_Connected(Mpool_out, WF1, BF1, 32);
+        FC1_out = reLU(FC1_out);
+        FC2_out = Fully_Connected(FC1_out, WF2, BF2, 12);
+        SM_out = Soft_Max(FC2_out);
+
+        double maxSig=0.5;
 
 
+        for(int k=0;k<12;k++){
+            if(SM_out[k]>maxSig){
+                maxSig=SM_out[k];
+                maxClass=k+1;
+            }
+        }
+        return maxClass;
+    }
 }
 
 

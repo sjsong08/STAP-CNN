@@ -24,8 +24,5 @@ dependencies {
     testCompile 'junit:junit:4.12'
     compile 'com.android.support:appcompat-v7:23.4.0'
     compile 'com.google.android.gms:play-services-maps:9.2.0'
-    compile 'org.deeplearning4j:deeplearning4j-core:0.7.2'
-    compile 'org.nd4j:nd4j-native:0.7.2'
-    compile 'org.nd4j:nd4j-native:0.7.2:android-x86'
 }
 
