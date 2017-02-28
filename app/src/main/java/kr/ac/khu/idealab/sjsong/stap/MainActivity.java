@@ -52,7 +52,7 @@ public class MainActivity extends AppCompatActivity {
     double[][] WF2 = new double[32][12];
     double[] BF1 = new double[32];
     double[] BF2 = new double[12];
-    double[] BN;
+    double[] BN = new double[2];
     double[][] sample1 = new double[2][4096];
 
 
