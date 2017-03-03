@@ -48,7 +48,7 @@ public class MainActivity extends AppCompatActivity {
     double threshold = 0.3;
 
     double[][] WC = new double[2][7];
-    double[][] WF1 = new double[1024][32];
+    double[][] WF1 = new double[256][32];
     double[][] WF2 = new double[32][12];
     double[] BF1 = new double[32];
     double[] BF2 = new double[12];
@@ -211,7 +211,7 @@ public class MainActivity extends AppCompatActivity {
 
 
         double[] WC_t = new double[2*7];
-        double[] WF1_t = new double[1024*32];
+        double[] WF1_t = new double[256*32];
         double[] WF2_t = new double[32*12];
         double[] Sample_t = new double[8192];
 
@@ -254,9 +254,9 @@ public class MainActivity extends AppCompatActivity {
             }
             bufferedReader2.close();
 
-            for(int q=0;q<1024;q++) {
+            for(int q=0;q<256;q++) {
                 for (int p = 0; p < 32; p++) {
-                    WF1[q][p]=WF1_t[q*32 + p];
+                    WF1[q][p]=WF1_t[p*256 + q];
                 }
             }
 
@@ -271,7 +271,7 @@ public class MainActivity extends AppCompatActivity {
 
             for(int q=0;q<32;q++) {
                 for (int p = 0; p < 12; p++) {
-                    WF2[q][p]=WF2_t[q*12 + p];
+                    WF2[q][p]=WF2_t[p*32 + q];
                 }
             }
 
@@ -322,13 +322,13 @@ public class MainActivity extends AppCompatActivity {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        int WC_length = WC.length;
+        int WC_length = WC[0].length;
         int WF1_length = WF1.length;
-        int WF2_length = WF2.length;
+        int WF2_length = WF2[0].length;
         Toast.makeText(getApplicationContext(),"WC="+WC_length+" WF1="+WF1_length+" WF2="+WF2_length,Toast.LENGTH_SHORT).show();
 
         int aaa=Network(sample1);
-        Toast.makeText(getApplicationContext(),aaa,Toast.LENGTH_SHORT).show();
+        Toast.makeText(getApplicationContext(),String.valueOf(aaa),Toast.LENGTH_SHORT).show();
 
     }
 
@@ -945,7 +945,7 @@ public class MainActivity extends AppCompatActivity {
         return out;
     }
 */
-    public double[] Conv(double[] input1, double[] input2, double[][]W){
+    public double[] Conv(double[] input1, double[] input2, double[][]WC){
         int size = input1.length;
         double[] conv_out = new double[size];
         
@@ -967,7 +967,7 @@ public class MainActivity extends AppCompatActivity {
                         input2[size-5] * WC[1][0] + input2[size-4] * WC[1][1] + input2[size-3] * WC[1][2] + input2[size-2] * WC[1][3] + input2[size-1] * WC[1][4];
             } else if (k == size-1) {
                 conv_out[k] = input1[size-4] * WC[0][0] + input1[size-3] * WC[0][1] + input1[size-2] * WC[0][2] + input1[size-1] * WC[0][3] +
-                        input2[4092] * WC[1][0] + input2[4093] * WC[1][1] + input2[4094] * WC[1][2] + input2[4095] * WC[1][3];
+                        input2[size-4] * WC[1][0] + input2[size-3] * WC[1][1] + input2[size-2] * WC[1][2] + input2[size-1] * WC[1][3];
             } else {
                 conv_out[k] = input1[k - 3] * WC[0][0] + input1[k - 2] * WC[0][1] + input1[k - 1] * WC[0][2] + input1[k] * WC[0][3] + input1[k + 1] * WC[0][4] + input1[k + 2] * WC[0][5] + input1[k + 3] * WC[0][6] +
                         input2[k - 3] * WC[1][0] + input2[k - 2] * WC[1][1] + input2[k - 1] * WC[1][2] + input2[k] * WC[1][3] + input2[k + 1] * WC[1][4] + input2[k + 2] * WC[1][5] + input2[k + 3] * WC[1][6];
@@ -1004,7 +1004,7 @@ public class MainActivity extends AppCompatActivity {
 
             double tmpout = 0;
             for (int i=0; i<stride; i++) {
-                tmpout = tmpout + input[i*stride + j];
+                tmpout = tmpout + input[j*stride + i];
             }
             out[j]=tmpout/stride;
         }
@@ -1020,7 +1020,7 @@ public class MainActivity extends AppCompatActivity {
                 out[i] = (input[i]-mean)/0.0001;
             }
             else {
-                out[i] = (input[i] - mean) / var;
+                out[i] = (input[i] - mean) /Math.sqrt(var);
             }
         }
         return out;
@@ -1042,24 +1042,38 @@ public class MainActivity extends AppCompatActivity {
         double[] out = new double[outsize];
 
         for (int i=0;i<outsize;i++){
+            out[i] = 0;
             for (int j=0;j<size;j++){
-                out[i]=0;
-                out[i]=out[i]+input[j]*W[j][i];
+
+                out[i]=out[i]+(input[j]*W[j][i]);
             }
             out[i]=out[i]+B[i];
         }
         return out;
     }
 
-    public double[] Soft_Max(double[] input){
+    public static double[] Soft_Max(double[] input){
         int size = input.length;
         double[] out = new double[size];
         double sum = 0;
+        double min =0;
         for (int i=0;i<size;i++){
-            sum = sum + input[i];
+            if(input[i]<min){
+                min=input[i];
+            }
+        }
+        if(min<0){
+            min=-min;
+        }
+        else{
+            min=0;
         }
         for (int i=0;i<size;i++){
-            out[i]=input[i]/sum;
+            sum = sum + input[i] + min;
+        }
+
+        for (int i=0;i<size;i++){
+            out[i]=(input[i]+min)/sum;
         }
         return out;
 
@@ -1067,20 +1081,21 @@ public class MainActivity extends AppCompatActivity {
 
     public int Network(double[][] input){
         double[] Conv_out = new double[1024];
-        double[] Apool_out1 = new double[512];
-        double[] Apool_out2 = new double[512];
+        double[] Apool_out1 = new double[1024];
+        double[] Apool_out2 = new double[1024];
         double[] BN_out = new double[1024];
         double[] Act_out = new double[1024];
         double[] Mpool_out = new double[256];
         double[] FC1_out = new double[32];
         double[] FC2_out = new double[12];
         double[] SM_out = new double[12];
+        double BNT = 3337025.75;
 
 
         Apool_out1 = Avg_Pool(input[0], 4);
         Apool_out2 = Avg_Pool(input[1], 4);
         Conv_out = Conv(Apool_out1, Apool_out2, WC);
-        BN_out = Batch_Normalize(Conv_out, BN[0],BN[1]);
+        BN_out = Batch_Normalize(Conv_out, BN[0],BNT);
         Act_out = reLU(BN_out);
         Mpool_out = Max_Pool(Act_out, 4);
         FC1_out = Fully_Connected(Mpool_out, WF1, BF1, 32);
@@ -1088,7 +1103,7 @@ public class MainActivity extends AppCompatActivity {
         FC2_out = Fully_Connected(FC1_out, WF2, BF2, 12);
         SM_out = Soft_Max(FC2_out);
 
-        double maxSig=0.5;
+        double maxSig=0.1;
 
 
         for(int k=0;k<12;k++){
