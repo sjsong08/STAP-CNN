@@ -471,9 +471,6 @@ public class MainActivity extends AppCompatActivity {
                                         }
                                     });
 
-
-
-
 /*
                                     double[] topSig1 = new double[2048];
                                     double[] topSig2 = new double[2048];
