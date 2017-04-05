@@ -623,6 +623,22 @@ public class MainActivity extends AppCompatActivity {
                                         sig[1][k] = (double) bufStapR[k];
                                     }
 
+                                    double minsig = 0;
+                                    double maxsig = 0;
+                                    double max_can = 0;
+                                    double min_can = 0;
+                                    for (int a=0;a<4096;a++){
+                                        min_can = Math.min(sig[0][a],sig[1][a]);
+                                        max_can = Math.max(sig[0][a],sig[1][a]);
+                                        minsig = Math.min(minsig,min_can);
+                                        maxsig = Math.max(maxsig,max_can);
+                                    }
+                                    for (int a=0;a<4096;a++){
+                                        sig[0][a]=(sig[0][a]-minsig)/(maxsig-minsig);
+                                        sig[1][a]=(sig[1][a]-minsig)/(maxsig-minsig);
+                                    }
+
+
                                     maxClass = Network(sig);
 
                                     handler.post(new Runnable() {
@@ -1088,8 +1104,8 @@ public class MainActivity extends AppCompatActivity {
         Apool_out1 = Avg_Pool(input[0], 4);
         Apool_out2 = Avg_Pool(input[1], 4);
         Conv_out = Conv(Apool_out1, Apool_out2, WC);
-        BN_out = Batch_Normalize(Conv_out, BN[0],BNT);
-        Act_out = reLU(BN_out);
+        //BN_out = Batch_Normalize(Conv_out, BN[0],BNT);
+        Act_out = reLU(Conv_out);
         Mpool_out = Max_Pool(Act_out, 4);
         FC1_out = Fully_Connected(Mpool_out, WF1, BF1, 32);
         FC1_out = reLU(FC1_out);
