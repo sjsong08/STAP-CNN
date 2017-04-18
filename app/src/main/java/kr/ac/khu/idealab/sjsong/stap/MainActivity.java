@@ -40,7 +40,7 @@ public class MainActivity extends AppCompatActivity {
     int n=5;  //
     int N=n*2; // support vectors
     int nT=5; // number of training data
-    int C=7;
+    int C=12;
     double threshold = 0.3;
 
     double[][] WC = new double[2][7];
@@ -194,7 +194,6 @@ public class MainActivity extends AppCompatActivity {
         String inWF2 = Environment.getExternalStorageDirectory().getAbsolutePath() + "/WF2";
         String inBF1 = Environment.getExternalStorageDirectory().getAbsolutePath() + "/BF1";
         String inBF2 = Environment.getExternalStorageDirectory().getAbsolutePath() + "/BF2";
-        String inBN = Environment.getExternalStorageDirectory().getAbsolutePath() + "/BN";
         String inSample = Environment.getExternalStorageDirectory().getAbsolutePath() + "/Sample";
 
         File fileWC = new File(inWC);
@@ -202,7 +201,6 @@ public class MainActivity extends AppCompatActivity {
         File fileWF2 = new File(inWF2);
         File fileBF1 = new File(inBF1);
         File fileBF2 = new File(inBF2);
-        File fileBN = new File(inBN);
         File fileSample = new File(inSample);
 
 
@@ -220,7 +218,6 @@ public class MainActivity extends AppCompatActivity {
             FileInputStream fWF2 = new FileInputStream(fileWF2);
             FileInputStream fBF1 = new FileInputStream(fileBF1);
             FileInputStream fBF2 = new FileInputStream(fileBF2);
-            FileInputStream fBN = new FileInputStream(fileBN);
             FileInputStream fSample = new FileInputStream(fileSample);
 
             BufferedReader bufferedReader1 = new BufferedReader(new InputStreamReader(fWC));
@@ -290,15 +287,6 @@ public class MainActivity extends AppCompatActivity {
             }
             bufferedReader5.close();
 
-            num = 0;
-            BufferedReader bufferedReader6 = new BufferedReader(new InputStreamReader(fBN));
-
-
-            while((temp=bufferedReader6.readLine()) != null){
-                BN[num] = Double.parseDouble(temp);
-                num += 1;
-            }
-            bufferedReader6.close();
 
             num = 0;
             BufferedReader bufferedReader7 = new BufferedReader(new InputStreamReader(fSample));
@@ -322,6 +310,18 @@ public class MainActivity extends AppCompatActivity {
         int WF1_length = WF1.length;
         int WF2_length = WF2[0].length;
         Toast.makeText(getApplicationContext(),"WC="+WC_length+" WF1="+WF1_length+" WF2="+WF2_length,Toast.LENGTH_SHORT).show();
+
+
+        double maxsig = 0;
+        double max_can = 0;
+        for (int a=0;a<4096;a++){
+            max_can = Math.max(Math.abs(sample1[0][a]),Math.abs(sample1[1][a]));
+            maxsig = Math.max(Math.abs(maxsig),Math.abs(max_can));
+        }
+        for (int a=0;a<4096;a++){
+            sample1[0][a]=sample1[0][a]/maxsig;
+            sample1[1][a]=sample1[1][a]/maxsig;
+        }
 
         int aaa=Network(sample1);
         Toast.makeText(getApplicationContext(),String.valueOf(aaa),Toast.LENGTH_SHORT).show();
@@ -623,19 +623,15 @@ public class MainActivity extends AppCompatActivity {
                                         sig[1][k] = (double) bufStapR[k];
                                     }
 
-                                    double minsig = 0;
                                     double maxsig = 0;
                                     double max_can = 0;
-                                    double min_can = 0;
                                     for (int a=0;a<4096;a++){
-                                        min_can = Math.min(sig[0][a],sig[1][a]);
-                                        max_can = Math.max(sig[0][a],sig[1][a]);
-                                        minsig = Math.min(minsig,min_can);
-                                        maxsig = Math.max(maxsig,max_can);
+                                        max_can = Math.max(Math.abs(sig[0][a]),Math.abs(sig[1][a]));
+                                        maxsig = Math.max(Math.abs(maxsig),Math.abs(max_can));
                                     }
                                     for (int a=0;a<4096;a++){
-                                        sig[0][a]=(sig[0][a]-minsig)/(maxsig-minsig);
-                                        sig[1][a]=(sig[1][a]-minsig)/(maxsig-minsig);
+                                        sig[0][a]=sig[0][a]/maxsig;
+                                        sig[1][a]=sig[1][a]/maxsig;
                                     }
 
 
@@ -859,9 +855,9 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-        //imageView1.setTranslationX(posX);
-        //imageView1.setTranslationY(posY);
-        //imageView1.setRotation(angle);
+        imageView1.setTranslationX(posX);
+        imageView1.setTranslationY(posY);
+        imageView1.setRotation(angle);
     }
 
     public double svmoutput(double[] tstX, double[][] TRset, double[] alpha, double b){
@@ -1112,8 +1108,10 @@ public class MainActivity extends AppCompatActivity {
         FC2_out = Fully_Connected(FC1_out, WF2, BF2, 12);
         SM_out = Soft_Max(FC2_out);
 
-        double maxSig=0.1;
+        double maxSig=0.15;
 
+
+        maxClass = -1;
 
         for(int k=0;k<12;k++){
             if(SM_out[k]>maxSig){
